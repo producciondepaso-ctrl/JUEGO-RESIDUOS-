@@ -1,0 +1,228 @@
+<div role="region" aria-label="Juego de clasificación de residuos">
+<h2 class="sr-only">Juego interactivo para practicar la segregación correcta de residuos en sus contenedores correspondientes, clasificando todos los residuos sin límite de tiempo</h2>
+
+<div id="screen-intro" style="text-align:center; padding: 1rem 0;">
+  <div style="font-size:48px; margin-bottom: 8px;"><i class="ti ti-recycle" aria-hidden="true"></i></div>
+  <h3 style="font-size:18px; font-weight:500; margin:0 0 8px;">Clasifica los residuos</h3>
+  <p style="font-size:14px; color:var(--color-text-secondary); max-width:420px; margin: 0 auto 20px;">Clasifica los 32 residuos en su contenedor correcto. Sin tiempo límite: tómate el que necesites y trata de lograr la mejor racha de aciertos.</p>
+  <button id="btn-start" style="background:var(--color-background-info); color:var(--color-text-info); border:0.5px solid var(--color-border-info); font-weight:500; padding:10px 24px;">Empezar juego</button>
+</div>
+
+<div id="screen-game" style="display:none;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; gap:12px; flex-wrap:wrap;">
+    <div style="display:flex; gap:16px;">
+      <div style="background:var(--color-background-secondary); border-radius:var(--border-radius-md); padding:8px 14px;">
+        <div style="font-size:11px; color:var(--color-text-secondary);">Puntos</div>
+        <div id="score" style="font-size:18px; font-weight:500;">0</div>
+      </div>
+      <div style="background:var(--color-background-secondary); border-radius:var(--border-radius-md); padding:8px 14px;">
+        <div style="font-size:11px; color:var(--color-text-secondary);">Racha</div>
+        <div id="streak" style="font-size:18px; font-weight:500;">0</div>
+      </div>
+    </div>
+    <div style="background:var(--color-background-secondary); border-radius:var(--border-radius-md); padding:8px 14px; min-width:90px;">
+      <div style="font-size:11px; color:var(--color-text-secondary);">Progreso</div>
+      <div id="progress-count" style="font-size:18px; font-weight:500;">0/32</div>
+    </div>
+  </div>
+
+  <div style="background:var(--color-background-secondary); border-radius:var(--border-radius-lg); padding:4px; height:6px; margin-bottom:20px; overflow:hidden;">
+    <div id="progress-bar" style="height:100%; background:var(--color-border-info); border-radius:var(--border-radius-lg); width:0%; transition: width 0.3s ease;"></div>
+  </div>
+
+  <div style="display:flex; justify-content:center; margin-bottom:24px;">
+    <div id="item-card" style="background:var(--color-background-primary); border:0.5px solid var(--color-border-tertiary); border-radius:var(--border-radius-lg); padding:1.5rem 2rem; text-align:center; min-width:220px;">
+      <div id="item-emoji" style="font-size:40px; margin-bottom:8px;"></div>
+      <div id="item-name" style="font-size:16px; font-weight:500;"></div>
+    </div>
+  </div>
+
+  <div id="bins" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px;"></div>
+
+  <div id="feedback" style="text-align:center; margin-top:16px; font-size:14px; font-weight:500; min-height:20px;"></div>
+</div>
+
+<div id="screen-end" style="display:none; text-align:center; padding: 1rem 0;">
+  <div style="font-size:48px; margin-bottom: 8px;"><i class="ti ti-trophy" aria-hidden="true"></i></div>
+  <h3 style="font-size:18px; font-weight:500; margin:0 0 4px;">¡Completaste la clasificación!</h3>
+  <p style="font-size:14px; color:var(--color-text-secondary); margin: 0 0 16px;" id="end-summary"></p>
+
+  <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:12px; max-width:340px; margin: 0 auto 20px;">
+    <div style="background:var(--color-background-secondary); border-radius:var(--border-radius-md); padding:1rem;">
+      <div style="font-size:13px; color:var(--color-text-secondary);">Aciertos al primer intento</div>
+      <div id="end-correct" style="font-size:24px; font-weight:500;">0</div>
+    </div>
+    <div style="background:var(--color-background-secondary); border-radius:var(--border-radius-md); padding:1rem;">
+      <div style="font-size:13px; color:var(--color-text-secondary);">Mejor racha</div>
+      <div id="end-best-streak" style="font-size:24px; font-weight:500;">0</div>
+    </div>
+  </div>
+
+  <div id="end-mistakes" style="text-align:left; max-width:420px; margin: 0 auto 20px; font-size:13px;"></div>
+
+  <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+    <button id="btn-restart" style="font-weight:500;"><i class="ti ti-refresh" style="font-size:16px; vertical-align:-3px; margin-right:4px;" aria-hidden="true"></i>Jugar de nuevo</button>
+    <button id="btn-learn" style="font-weight:500;">Quiero entender mejor las categorías ↗</button>
+  </div>
+</div>
+</div>
+
+<script>
+const BINS = [
+  { id:'organico', label:'Orgánicos', color:'c-green', icon:'ti-apple' },
+  { id:'reciclable', label:'Reciclables', color:'c-blue', icon:'ti-recycle' },
+  { id:'ordinario', label:'No aprovechables', color:'c-gray', icon:'ti-trash' },
+  { id:'peligroso', label:'Peligrosos', color:'c-amber', icon:'ti-alert-triangle' }
+];
+
+const ITEMS = [
+  {name:'Cáscara de banano', emoji:'🍌', bin:'organico'},
+  {name:'Cáscara de huevo', emoji:'🥚', bin:'organico'},
+  {name:'Restos de comida', emoji:'🍝', bin:'organico'},
+  {name:'Posos de café', emoji:'☕', bin:'organico'},
+  {name:'Restos de poda de jardín', emoji:'🌿', bin:'organico'},
+  {name:'Cáscara de naranja', emoji:'🍊', bin:'organico'},
+  {name:'Hojas secas', emoji:'🍂', bin:'organico'},
+  {name:'Hueso de pollo', emoji:'🍗', bin:'organico'},
+
+  {name:'Botella de plástico (PET)', emoji:'🧴', bin:'reciclable'},
+  {name:'Caja de cartón', emoji:'📦', bin:'reciclable'},
+  {name:'Lata de aluminio', emoji:'🥫', bin:'reciclable'},
+  {name:'Periódico viejo', emoji:'📰', bin:'reciclable'},
+  {name:'Botella de vidrio', emoji:'🍾', bin:'reciclable'},
+  {name:'Revista usada', emoji:'📖', bin:'reciclable'},
+  {name:'Tapa de gaseosa', emoji:'🥤', bin:'reciclable'},
+  {name:'Bolsa de papel kraft', emoji:'🛍️', bin:'reciclable'},
+
+  {name:'Servilleta usada', emoji:'🧻', bin:'ordinario'},
+  {name:'Colillas de cigarrillo', emoji:'🚬', bin:'ordinario'},
+  {name:'Chicle masticado', emoji:'🟤', bin:'ordinario'},
+  {name:'Bolsa de papas fritas', emoji:'🍟', bin:'ordinario'},
+  {name:'Pañal desechable', emoji:'🩲', bin:'ordinario'},
+  {name:'Vaso de icopor', emoji:'🥤', bin:'ordinario'},
+  {name:'Cepillo de dientes viejo', emoji:'🪥', bin:'ordinario'},
+  {name:'Papel higiénico usado', emoji:'🧻', bin:'ordinario'},
+
+  {name:'Pilas usadas', emoji:'🔋', bin:'peligroso'},
+  {name:'Foco / bombillo fundido', emoji:'💡', bin:'peligroso'},
+  {name:'Frasco de medicamento vencido', emoji:'💊', bin:'peligroso'},
+  {name:'Aceite de cocina usado', emoji:'🛢️', bin:'peligroso'},
+  {name:'Cartucho de impresora', emoji:'🖨️', bin:'peligroso'},
+  {name:'Envase de pintura', emoji:'🎨', bin:'peligroso'},
+  {name:'Termómetro de mercurio roto', emoji:'🌡️', bin:'peligroso'},
+  {name:'Frasco de limpiador químico', emoji:'🧪', bin:'peligroso'}
+];
+
+const TOTAL = ITEMS.length;
+
+let score = 0, streak = 0, bestStreak = 0, firstTryCorrect = 0, classifiedCount = 0;
+let currentItem = null;
+let queue = [];
+let mistakes = [];
+let triedWrongOnCurrent = false;
+
+function shuffle(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function renderBins(){
+  const binsEl = document.getElementById('bins');
+  binsEl.innerHTML = '';
+  BINS.forEach(bin => {
+    const btn = document.createElement('button');
+    btn.style.cssText = `display:flex; flex-direction:column; align-items:center; gap:6px; padding:14px 8px; cursor:pointer;`;
+    btn.innerHTML = `<i class="ti ${bin.icon}" style="font-size:24px;" aria-hidden="true"></i><span style="font-size:13px; font-weight:500;">${bin.label}</span>`;
+    btn.onclick = () => handleAnswer(bin.id);
+    binsEl.appendChild(btn);
+  });
+}
+
+function updateProgress(){
+  document.getElementById('progress-count').textContent = `${classifiedCount}/${TOTAL}`;
+  document.getElementById('progress-bar').style.width = (classifiedCount/TOTAL*100) + '%';
+}
+
+function nextItem(){
+  if(queue.length === 0){
+    endGame();
+    return;
+  }
+  currentItem = queue.shift();
+  triedWrongOnCurrent = false;
+  document.getElementById('item-emoji').textContent = currentItem.emoji;
+  document.getElementById('item-name').textContent = currentItem.name;
+  document.getElementById('feedback').textContent = '';
+}
+
+function handleAnswer(binId){
+  if(!currentItem) return;
+  const feedback = document.getElementById('feedback');
+  const correctBin = BINS.find(b => b.id === currentItem.bin);
+
+  if(binId === currentItem.bin){
+    streak++;
+    bestStreak = Math.max(bestStreak, streak);
+    if(!triedWrongOnCurrent){
+      score += 10 + Math.min(streak, 5) * 2;
+      firstTryCorrect++;
+    } else {
+      score += 3;
+    }
+    classifiedCount++;
+    feedback.style.color = 'var(--color-text-success)';
+    feedback.textContent = `Correcto · ${currentItem.name} va en ${correctBin.label}`;
+    document.getElementById('score').textContent = score;
+    document.getElementById('streak').textContent = streak;
+    updateProgress();
+    setTimeout(nextItem, 550);
+  } else {
+    streak = 0;
+    document.getElementById('streak').textContent = streak;
+    if(!triedWrongOnCurrent){
+      mistakes.push({item: currentItem.name, correct: correctBin.label});
+      triedWrongOnCurrent = true;
+    }
+    feedback.style.color = 'var(--color-text-danger)';
+    feedback.textContent = `Ahí no es. Inténtalo de nuevo`;
+  }
+}
+
+function startGame(){
+  score = 0; streak = 0; bestStreak = 0; firstTryCorrect = 0; classifiedCount = 0;
+  mistakes = [];
+  queue = shuffle(ITEMS);
+  document.getElementById('screen-intro').style.display = 'none';
+  document.getElementById('screen-end').style.display = 'none';
+  document.getElementById('screen-game').style.display = 'block';
+  document.getElementById('score').textContent = '0';
+  document.getElementById('streak').textContent = '0';
+  updateProgress();
+  renderBins();
+  nextItem();
+}
+
+function endGame(){
+  document.getElementById('screen-game').style.display = 'none';
+  document.getElementById('screen-end').style.display = 'block';
+  document.getElementById('end-summary').textContent = `Clasificaste los ${TOTAL} residuos · ${score} puntos`;
+  document.getElementById('end-correct').textContent = `${firstTryCorrect}/${TOTAL}`;
+  document.getElementById('end-best-streak').textContent = bestStreak;
+
+  const mistakesEl = document.getElementById('end-mistakes');
+  if(mistakes.length > 0){
+    mistakesEl.innerHTML = `<div style="font-size:12px; color:var(--color-text-secondary); margin-bottom:8px; font-weight:500;">Para repasar:</div>` +
+      mistakes.map(m => `<div style="padding:6px 0; border-top:0.5px solid var(--color-border-tertiary); font-size:13px;">${m.item} → <span style="color:var(--color-text-secondary);">${m.correct}</span></div>`).join('');
+  } else {
+    mistakesEl.innerHTML = `<div style="text-align:center; font-size:13px; color:var(--color-text-success);">¡Acertaste todos a la primera, excelente!</div>`;
+  }
+}
+
+document.getElementById('btn-start').onclick = startGame;
+document.getElementById('btn-restart').onclick = startGame;
+document.getElementById('btn-learn').onclick = () => sendPrompt('Explícame con detalle las categorías de residuos (orgánicos, reciclables, no aprovechables y peligrosos) y cómo segregarlos correctamente, con ejemplos de cada uno');
+</script>
